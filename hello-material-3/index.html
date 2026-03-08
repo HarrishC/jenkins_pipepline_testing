@@ -1,0 +1,329 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>The Verge Style Hello World</title>
+    <link href="https://fonts.googleapis.com/css2?family=Anton&family=Inter:wght@400;700;900&display=swap"
+        rel="stylesheet">
+    <style>
+        :root {
+            --verge-magenta: #e822a0;
+            --verge-cyan: #05f2c7;
+            --verge-yellow: #e8ff00;
+            --verge-black: #000000;
+            --verge-white: #ffffff;
+            --verge-gray: #1a1a1a;
+        }
+
+        * {
+            box-sizing: border-box;
+        }
+
+        body {
+            margin: 0;
+            padding: 0;
+            font-family: 'Inter', sans-serif;
+            background-color: var(--verge-black);
+            color: var(--verge-white);
+            display: flex;
+            flex-direction: column;
+            height: 100vh;
+            overflow: hidden;
+            border: 8px solid var(--verge-white);
+        }
+
+        /* Magazine Top Nav */
+        nav {
+            border-bottom: 2px solid var(--verge-gray);
+            padding: 1rem 2rem;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            background-color: var(--verge-black);
+        }
+
+        .logo-text {
+            font-family: 'Anton', sans-serif;
+            font-size: 2.5rem;
+            letter-spacing: 0.05em;
+            color: var(--verge-white);
+            text-transform: uppercase;
+            line-height: 1;
+            margin: 0;
+            padding: 0;
+        }
+
+        .nav-links {
+            display: flex;
+            gap: 20px;
+            font-weight: 900;
+            text-transform: uppercase;
+            font-size: 0.9rem;
+            letter-spacing: 1px;
+        }
+
+        .nav-links span {
+            cursor: pointer;
+        }
+
+        .nav-links span:hover {
+            color: var(--verge-magenta);
+            text-decoration: underline;
+            text-decoration-thickness: 3px;
+        }
+
+        /* Main Content Area */
+        .hero-container {
+            flex: 1;
+            display: flex;
+            position: relative;
+        }
+
+        .left-col {
+            flex: 1;
+            border-right: 2px solid var(--verge-gray);
+            padding: 4rem;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+        }
+
+        .right-col {
+            width: 400px;
+            background-color: var(--verge-gray);
+            background-image: repeating-linear-gradient(45deg,
+                    #1a1a1a,
+                    #1a1a1a 10px,
+                    #222 10px,
+                    #222 20px);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .verge-badge {
+            font-size: 1rem;
+            font-weight: 900;
+            text-transform: uppercase;
+            background-color: var(--verge-cyan);
+            color: var(--verge-black);
+            padding: 6px 12px;
+            display: inline-block;
+            align-self: flex-start;
+            margin-bottom: 2rem;
+            transform: skewX(-10deg);
+        }
+
+        .verge-headline {
+            font-family: 'Anton', sans-serif;
+            font-size: 8rem;
+            line-height: 0.9;
+            margin: 0 0 2rem 0;
+            text-transform: uppercase;
+            color: var(--verge-white);
+        }
+
+        .verge-headline .highlight {
+            color: var(--verge-yellow);
+            position: relative;
+            display: inline-block;
+        }
+
+        .verge-headline .highlight::after {
+            content: '';
+            position: absolute;
+            left: 0;
+            bottom: 8px;
+            width: 100%;
+            height: 8px;
+            background-color: var(--verge-magenta);
+            z-index: -1;
+        }
+
+        .author-line {
+            display: flex;
+            align-items: center;
+            gap: 15px;
+            font-size: 1.1rem;
+            font-weight: 700;
+        }
+
+        .author-avatar {
+            width: 40px;
+            height: 40px;
+            background-color: var(--verge-magenta);
+            border-radius: 50%;
+        }
+
+        /* Sticker Graphic */
+        .sticker {
+            position: absolute;
+            width: 200px;
+            height: 200px;
+            background-color: var(--verge-yellow);
+            color: var(--verge-black);
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-family: 'Anton', sans-serif;
+            font-size: 2.5rem;
+            text-transform: uppercase;
+            text-align: center;
+            line-height: 1;
+            box-shadow: 10px 10px 0px var(--verge-magenta);
+            animation: spinSticker 20s linear infinite;
+        }
+
+        @keyframes spinSticker {
+            0% {
+                transform: rotate(15deg);
+            }
+
+            100% {
+                transform: rotate(375deg);
+            }
+        }
+
+        /* Ticker Tape */
+        .ticker-wrap {
+            width: 100%;
+            background-color: var(--verge-magenta);
+            border-top: 2px solid var(--verge-white);
+            padding: 10px 0;
+            overflow: hidden;
+        }
+
+        .ticker {
+            display: inline-block;
+            white-space: nowrap;
+            font-family: 'Anton', sans-serif;
+            font-size: 1.5rem;
+            text-transform: uppercase;
+            color: var(--verge-black);
+            animation: tickerAnimation 15s linear infinite;
+        }
+
+        .ticker-item {
+            padding: 0 2rem;
+        }
+
+        @keyframes tickerAnimation {
+            0% {
+                transform: translate3d(0, 0, 0);
+            }
+
+            100% {
+                transform: translate3d(-50%, 0, 0);
+            }
+        }
+
+        /* Mobile Responsive Styles */
+        @media (max-width: 768px) {
+            body {
+                border-width: 4px;
+                height: auto;
+                min-height: 100vh;
+                overflow-y: auto;
+            }
+
+            nav {
+                flex-direction: column;
+                gap: 15px;
+                padding: 1rem;
+            }
+
+            .logo-text {
+                font-size: 2rem;
+            }
+
+            .nav-links {
+                flex-wrap: wrap;
+                justify-content: center;
+                gap: 10px;
+                font-size: 0.8rem;
+            }
+
+            .hero-container {
+                flex-direction: column;
+            }
+
+            .left-col {
+                border-right: none;
+                border-bottom: 2px solid var(--verge-gray);
+                padding: 2rem 1.5rem;
+            }
+
+            .verge-headline {
+                font-size: 4.5rem;
+            }
+
+            .right-col {
+                width: 100%;
+                height: 250px;
+            }
+
+            .sticker {
+                width: 140px;
+                height: 140px;
+                font-size: 1.5rem;
+            }
+
+            .ticker {
+                font-size: 1rem;
+            }
+        }
+    </style>
+</head>
+
+<body>
+
+    <nav>
+        <div class="logo-text">THE VERGE</div>
+        <div class="nav-links">
+            <span>Tech</span>
+            <span>Reviews</span>
+            <span>Science</span>
+            <span>Creators</span>
+        </div>
+    </nav>
+
+    <div class="hero-container">
+        <div class="left-col">
+            <div class="verge-badge">Exclusive First Look</div>
+            <h1 class="verge-headline">
+                HELLO<br>
+                <span class="highlight">WORLD</span>
+            </h1>
+            <div class="author-line">
+                <div class="author-avatar"></div>
+                <span>By AI Assistant • Mar 1, 2026</span>
+            </div>
+        </div>
+
+        <div class="right-col">
+            <div class="sticker">
+                READ<br>IT<br>NOW!
+            </div>
+        </div>
+    </div>
+
+    <div class="ticker-wrap">
+        <div class="ticker">
+            <span class="ticker-item">/// BREAKING NEWS /// HELLO WORLD HAS ARRIVED</span>
+            <span class="ticker-item">/// THE AESTHETIC IS NOW NEOBRUTALIST</span>
+            <span class="ticker-item">/// EXCLUSIVE COVERAGE</span>
+            <!-- Duplicate for seamless scroll -->
+            <span class="ticker-item">/// BREAKING NEWS /// HELLO WORLD HAS ARRIVED</span>
+            <span class="ticker-item">/// THE AESTHETIC IS NOW NEOBRUTALIST</span>
+            <span class="ticker-item">/// EXCLUSIVE COVERAGE</span>
+        </div>
+    </div>
+
+</body>
+
+</html>
