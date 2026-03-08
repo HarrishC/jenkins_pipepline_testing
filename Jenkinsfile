@@ -9,7 +9,7 @@ pipeline {
     stages {
         stage('Build') {
             steps {
-                echo "${BUILD_NUMBER}"
+                echo "Build number : ${BUILD_NUMBER}"
             }
         }
 
