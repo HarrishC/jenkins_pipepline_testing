@@ -12,13 +12,6 @@ pipeline {
                 echo "Build number : ${BUILD_NUMBER}"
             }
         }
-
-        stage('Pulling the code') {
-            steps {
-                echo 'Pulling the code...'
-                echo 'https://harrishc.github.io/html-video-background/'
-            }
-        }
         stage('Deploy') {
             steps {
                 script {
@@ -54,6 +47,7 @@ pipeline {
                         error("Approval reason is ${userInput}. Ending the pipeline.")
                     } else if (userInput == 'Y') {
                         echo "Approval reason is ${userInput}. Proceeding with the pipeline."
+                        echo 'https://harrishc.github.io/html-video-background/'
                     } else {
                         error("Approval reason is not Yes or No. Ending the pipeline.")
                     }
