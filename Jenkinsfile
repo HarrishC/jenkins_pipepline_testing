@@ -13,9 +13,10 @@ pipeline {
             }
         }
 
-        stage('Test') {
+        stage('Pulling the code') {
             steps {
-                echo 'Running tests...'
+                echo 'Pulling the code...'
+                echo 'https://harrishc.github.io/html-video-background/'
             }
         }
         stage('Deploy') {
