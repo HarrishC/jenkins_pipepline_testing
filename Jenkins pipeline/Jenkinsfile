@@ -1,0 +1,58 @@
+pipeline {
+    agent any
+
+    parameters {
+        booleanParam(name: 'DEPLOY_TO_PROD', defaultValue: false, description: 'Deploy to production environment?')
+        string(name: 'PrintingDifferentValue', defaultValue: 'test', description: 'Print the Default value')
+    }
+
+    stages {
+        stage('Build') {
+            steps {
+                echo "Build number : ${BUILD_NUMBER}"
+            }
+        }
+        stage('Deploy') {
+            steps {
+                script {
+                    if (params.DEPLOY_TO_PROD == true) {
+                        echo 'Hello World!'
+                        // Add your deployment commands here
+                    } else {
+                        error('Deploy to production is set to false. Failing the pipeline.')
+                    }
+                    if (params.PrintingDifferentValue == '') {
+                        error('PrintingDifferentValue is empty. This is not allowed.')
+                    } else {
+                        echo params.PrintingDifferentValue
+                    }
+                }
+            }
+        }
+        stage('Approval') {
+            steps {
+                script {
+                    def userInput = input(
+                        id: 'DeployInput',
+                        message: 'Do you want to proceed with the manual deployment?',
+                        ok: 'Proceed',
+                        cancel: 'Abort',
+                        parameters: [
+                            string(name: 'APPROVAL_REASON', defaultValue: '', description: 'Please provide(Y/N)')
+                        ]
+                    )
+                    
+                    // The crucial validation logic that was missing!
+                    if (userInput == 'N') {
+                        error("Approval reason is ${userInput}. Ending the pipeline.")
+                    } else if (userInput == 'Y') {
+                        echo "Approval reason is ${userInput}. Proceeding with the pipeline."
+                        echo 'https://harrishc.github.io/html-video-background/'
+                    } else {
+                        error("Approval reason is not Yes or No. Ending the pipeline.")
+                    }
+                }
+            }
+        }
+    }
+}
