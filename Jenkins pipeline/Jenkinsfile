@@ -64,7 +64,7 @@ pipeline {
                 }
             }
         }
-         stage('Check DB Connection') {
+        stage('Check DB Connection') {
             steps {
                 script {
                     echo "Checking connection to SQL Server..."
