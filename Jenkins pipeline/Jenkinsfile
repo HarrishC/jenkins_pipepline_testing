@@ -22,30 +22,6 @@ pipeline {
                 echo "Build number : ${BUILD_NUMBER}"
             }
         }
-        stage('Check DB Connection') {
-            steps {
-                script {
-                    echo "Checking connection to SQL Server..."
-                    // The command now reads from queries.sql using its absolute path via %WORKSPACE%
-                    // Read the SQL script contents and print them to the Jenkins console
-                    def sqlQuery = readFile('Jenkins pipeline\\queries.sql')
-                    echo "Executing the following SQL query:\n${sqlQuery}"
-                    
-                    // The command now specifies the "Jenkins pipeline" subdirectory!
-                    def checkDbCommand = """@echo off
-                        sqlcmd -S localhost\\SQLEXPRESS -d jenkinsTesting -U %DB_CREDS_USR% -P %DB_CREDS_PSW% -i "Jenkins pipeline\\queries.sql"
-                    """
-                    
-                    def result = bat(script: checkDbCommand, returnStatus: true)
-                    
-                    if (result == 0) {
-                        echo "Successfully connected to the database."
-                    } else {
-                        error("Failed to connect to the database. Check connection string and server status.")
-                    }
-                }
-            }
-        }
         stage('Deploy') {
             steps {
                 script {
@@ -84,6 +60,30 @@ pipeline {
                         echo 'https://harrishc.github.io/html-video-background/'
                     } else {
                         error("Approval reason is not Yes or No. Ending the pipeline.")
+                    }
+                }
+            }
+        }
+         stage('Check DB Connection') {
+            steps {
+                script {
+                    echo "Checking connection to SQL Server..."
+                    // The command now reads from queries.sql using its absolute path via %WORKSPACE%
+                    // Read the SQL script contents and print them to the Jenkins console
+                    def sqlQuery = readFile('Jenkins pipeline\\queries.sql')
+                    echo "Executing the following SQL query:\n${sqlQuery}"
+                    
+                    // The command now specifies the "Jenkins pipeline" subdirectory!
+                    def checkDbCommand = """@echo off
+                        sqlcmd -S localhost\\SQLEXPRESS -d jenkinsTesting -U %DB_CREDS_USR% -P %DB_CREDS_PSW% -i "Jenkins pipeline\\queries.sql"
+                    """
+                    
+                    def result = bat(script: checkDbCommand, returnStatus: true)
+                    
+                    if (result == 0) {
+                        echo "Successfully connected to the database."
+                    } else {
+                        error("Failed to connect to the database. Check connection string and server status.")
                     }
                 }
             }
