@@ -27,9 +27,9 @@ pipeline {
                 script {
                     echo "Checking connection to SQL Server..."
                     
-                    // The command uses Windows Authentication (-E) to connect to the server (-S)
-                    // and database (-d) and runs a simple query (-Q) to check the connection.
-                    // Here we use %DB_CREDS_USR% and %DB_CREDS_PSW% implicitly injected by the environment block
+                    // Debugging: Print current directory and its contents
+                    bat 'echo "Current Directory: " & cd & dir'
+                    
                     // The command now reads from queries.sql using its absolute path via %WORKSPACE%
                     def checkDbCommand = """@echo off
                         sqlcmd -S localhost\\SQLEXPRESS -d jenkinsTesting -U %DB_CREDS_USR% -P %DB_CREDS_PSW% -i "%WORKSPACE%\\queries.sql"
