@@ -12,6 +12,11 @@ pipeline {
     }
 
     stages {
+        stage('Checkout') {
+            steps {
+                git branch: 'main', url: 'https://github.com/HarrishC/jenkins_pipepline_testing.git'
+            }
+        }
         stage('Build') {
             steps {
                 echo "Build number : ${BUILD_NUMBER}"
