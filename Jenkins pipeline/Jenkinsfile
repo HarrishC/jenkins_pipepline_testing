@@ -100,7 +100,6 @@ pipeline {
                 to: 'harrishgamer13@gmail.com',
                 subject: "${env.JOB_NAME} - Build ${env.BUILD_NUMBER} - ${env.BUILD_STATUS}",
                 body: "Build completed Successfully for ${env.JOB_NAME} - Build ${env.BUILD_NUMBER} - ${env.BUILD_STATUS}\n${env.BUILD_URL}. Please find the logs attached.",
-                attachmentsPattern: '**/*.log',
                 attachLog: true
             )
         }
