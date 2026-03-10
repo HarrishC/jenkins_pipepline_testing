@@ -90,7 +90,7 @@ pipeline {
                         sqlcmd -S localhost\\SQLEXPRESS -d jenkinsTesting -U %DB_CREDS_USR% -P %DB_CREDS_PSW% -i "Jenkins pipeline\\queries.sql"
                     """
 
-                    def executeQuery = bat(script: dbCommand, returnStatus: true)
+                    def executeQuery = bat(script: dbCommand, returnStatus: true, hideStdout: true)
                     
                     if (executeQuery == 0) {
                         echo "Successfully executed the SQL query."
