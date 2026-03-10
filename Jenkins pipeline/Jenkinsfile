@@ -3,7 +3,8 @@ pipeline {
 
     environment {
         DB_CREDS = credentials('jenkins-sql-creds')
-        MSSQL_CONNECTION_STRING = "Server=localhost\\SQLEXPRESS;Database=jenkinsTesting;User Id=${DB_CREDS_USR};Password=${DB_CREDS_PSW};TrustServerCertificate=True;"
+        DB_NAME = 'jenkinsTesting'
+        MSSQL_CONNECTION_STRING = "Server=localhost\\SQLEXPRESS;Database=${DB_NAME};User Id=${DB_CREDS_USR};Password=${DB_CREDS_PSW};TrustServerCertificate=True;"
     }
 
     parameters {
