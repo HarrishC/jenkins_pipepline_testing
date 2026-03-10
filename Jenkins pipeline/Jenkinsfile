@@ -2,8 +2,8 @@ pipeline {
     agent any
 
     environment {
-        // Will be populated dynamically in the Load Credentials stage to hide credentials
-        MSSQL_CONNECTION_STRING = ''
+        DB_CREDS = credentials('jenkins-sql-creds')
+        MSSQL_CONNECTION_STRING = "Server=localhost\\SQLEXPRESS;Database=jenkinsTesting;User Id=${DB_CREDS_USR};Password=${DB_CREDS_PSW};TrustServerCertificate=True;"
     }
 
     parameters {
@@ -12,21 +12,6 @@ pipeline {
     }
 
     stages {
-        stage('Load Credentials') {
-            steps {
-                script {
-                    if (fileExists('db_creds.txt')) {
-                        def creds = readFile('db_creds.txt').split('\r?\n')
-                        env.DB_USER = creds[0].trim()
-                        env.DB_PASS = creds[1].trim()
-                        env.MSSQL_CONNECTION_STRING = "Server=localhost\\SQLEXPRESS;Database=jenkinsTesting;User Id=${env.DB_USER};Password=${env.DB_PASS};TrustServerCertificate=True;"
-                        echo "Loaded credentials successfully."
-                    } else {
-                        error('Missing db_creds.txt file! Please create it with username on line 1 and password on line 2 in the workspace.')
-                    }
-                }
-            }
-        }
         stage('Build') {
             steps {
                 echo "Build number : ${BUILD_NUMBER}"
@@ -39,9 +24,9 @@ pipeline {
                     
                     // The command uses Windows Authentication (-E) to connect to the server (-S)
                     // and database (-d) and runs a simple query (-Q) to check the connection.
-                    // Here we use %DB_USER% and %DB_PASS% with @echo off to avoid leaking credentials in the console log
+                    // Here we use %DB_CREDS_USR% and %DB_CREDS_PSW% implicitly injected by the environment block
                     def checkDbCommand = """@echo off
-                        sqlcmd -S localhost\\SQLEXPRESS -d jenkinsTesting -U %DB_USER% -P %DB_PASS% -Q "SELECT 1 as ConnectionStatus"
+                        sqlcmd -S localhost\\SQLEXPRESS -d jenkinsTesting -U %DB_CREDS_USR% -P %DB_CREDS_PSW% -Q "SELECT 1 as ConnectionStatus"
                     """
                     
                     def result = bat(script: checkDbCommand, returnStatus: true)
