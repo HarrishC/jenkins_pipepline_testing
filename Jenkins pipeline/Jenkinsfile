@@ -98,7 +98,7 @@ pipeline {
         always {
             emailext(
                 to: 'harrishgamer13@gmail.com',
-                subject: "${env.JOB_NAME} - Build ${env.BUILD_NUMBER} - ${env.BUILD_STATUS}",
+                subject: "${env.JOB_NAME} - Build ${env.BUILD_NUMBER} - ${currentBuild.result}",
                 body: "Build completed Successfully for ${env.JOB_NAME} - Build ${env.BUILD_NUMBER} - ${env.BUILD_STATUS}\n${env.BUILD_URL}. Please find the logs attached.",
                 attachLog: true
             )
