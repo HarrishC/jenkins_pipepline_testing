@@ -27,9 +27,9 @@ pipeline {
                 script {
                     echo "Checking connection to SQL Server..."
                     // The command now reads from queries.sql using its absolute path via %WORKSPACE%
-                    // Print the SQL script contents before execution
-                    echo "Executing the following SQL query:" 
-                    echo "Jenkins pipeline\\queries.sql"
+                    // Read the SQL script contents and print them to the Jenkins console
+                    def sqlQuery = readFile('Jenkins pipeline\\queries.sql')
+                    echo "Executing the following SQL query:\n${sqlQuery}"
                     
                     // The command now specifies the "Jenkins pipeline" subdirectory!
                     def checkDbCommand = """@echo off
