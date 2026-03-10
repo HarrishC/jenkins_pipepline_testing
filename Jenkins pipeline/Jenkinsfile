@@ -26,7 +26,7 @@ pipeline {
                     // and database (-d) and runs a simple query (-Q) to check the connection.
                     // Here we use %DB_CREDS_USR% and %DB_CREDS_PSW% implicitly injected by the environment block
                     def checkDbCommand = """@echo off
-                        sqlcmd -S localhost\\SQLEXPRESS -d jenkinsTesting -U %DB_CREDS_USR% -P %DB_CREDS_PSW% -Q "SELECT 1 as ConnectionStatus"
+                        sqlcmd -S localhost\\SQLEXPRESS -d jenkinsTesting -U %DB_CREDS_USR% -P %DB_CREDS_PSW% -Q "SELECT * FROM customerDetails"
                     """
                     
                     def result = bat(script: checkDbCommand, returnStatus: true)
