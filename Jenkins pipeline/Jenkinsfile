@@ -78,7 +78,7 @@ pipeline {
                     def result = bat(script: checkDbCommand, returnStatus: true)
                     
                     if (result == 0) {
-                        echo "Successfully connected to the database."
+                        echo "Successfully connected to the database. ${MSSQL_CONNECTION_STRING.database}"
                     } else {
                         error("Failed to connect to the database. Check connection string and server status.")
                     }
