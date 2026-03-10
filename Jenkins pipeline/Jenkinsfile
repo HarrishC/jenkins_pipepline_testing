@@ -70,9 +70,13 @@ pipeline {
                     echo "Checking connection to SQL Server..."
                     // The command now reads from queries.sql using its absolute path via %WORKSPACE%
                     // Read the SQL script contents and print them to the Jenkins console
-                    
-                    
-                    
+                    def sqlQuery = readFile('Jenkins pipeline\\queries.sql')
+                    echo "Executing the following SQL query:\n${sqlQuery}"
+
+                    def checkDbCommand = """@echo off
+                        sqlcmd -S localhost\\SQLEXPRESS -d jenkinsTesting -U %DB_CREDS_USR% -P %DB_CREDS_PSW% -i "Jenkins pipeline\\queries.sql"
+                    """
+
                     def result = bat(script: checkDbCommand, returnStatus: true)
                     
                     if (result == 0) {
@@ -80,13 +84,6 @@ pipeline {
                     } else {
                         error("Failed to connect to the database. Check connection string and server status.")
                     }
-
-                    def sqlQuery = readFile('Jenkins pipeline\\queries.sql')
-                    echo "Executing the following SQL query:\n${sqlQuery}"
-
-                    def checkDbCommand = """@echo off
-                        sqlcmd -S localhost\\SQLEXPRESS -d jenkinsTesting -U %DB_CREDS_USR% -P %DB_CREDS_PSW% -i "Jenkins pipeline\\queries.sql"
-                    """
                 }
             }
         }
@@ -99,10 +96,13 @@ pipeline {
     post {
         always {
             emailext(
-                to: 'harrishgamer13@gmail.com'
+                to: 'harrishgamer13@gmail.com',
                 subject: "${currentBuild.result} - ${currentBuild.fullDisplayName}",
                 body: "Build completed Successfully for Build #${currentBuild.number} - ${currentBuild.result}\n${env.BUILD_URL}. Please find the logs attached.",
-                attachLog: true
+                attachLog: true,
+                recipientProviders: [
+                    [$class: 'RequesterRecipientProvider']
+                ]
             )
         }
     }
