@@ -79,7 +79,7 @@ pipeline {
                     def result = bat(script: checkDbCommand, returnStatus: true)
                     
                     if (result == 0) {
-                        echo "Successfully connected to the database. ${DB_NAME}"
+                        echo "Successfully connected to the database: ${DB_NAME}"
                     } else {
                         error("Failed to connect to the database. Check connection string and server status.")
                     }
@@ -88,7 +88,7 @@ pipeline {
                     echo "Executing the following SQL query:\n${sqlQuery}"
 
                     def dbCommand = """@echo off
-                        sqlcmd -S localhost\\SQLEXPRESS -d jenkinsTesting -U %DB_CREDS_USR% -P %DB_CREDS_PSW% -i "Jenkins pipeline\\queries.sql"
+                        sqlcmd -S localhost\\SQLEXPRESS -d ${DB_NAME} -U %DB_CREDS_USR% -P %DB_CREDS_PSW% -i "Jenkins pipeline\\queries.sql"
                     """
 
                     def executeQuery = bat(script: dbCommand, returnStatus: true)
