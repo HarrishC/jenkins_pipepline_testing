@@ -71,11 +71,11 @@ pipeline {
                     // The command now reads from queries.sql using its absolute path via %WORKSPACE%
                     // Read the SQL script contents and print them to the Jenkins console
                     
-                    def checkDbCommand = """
-                        sqlcmd -S localhost\\SQLEXPRESS -d jenkinsTesting -U %DB_CREDS_USR% -P %DB_CREDS_PSW%
+                    def checkDbCommand = """@echo off
+                        sqlcmd -S localhost\\SQLEXPRESS -d jenkinsTesting -U %DB_CREDS_USR% -P %DB_CREDS_PSW% > nul 2>&1
                     """
                     
-                    def result = bat(script: checkDbCommand, returnStatus: true, hideStdout: true)
+                    def result = bat(script: checkDbCommand, returnStatus: true)
                     
                     if (result == 0) {
                         echo "Successfully connected to the database."
@@ -87,10 +87,10 @@ pipeline {
                     echo "Executing the following SQL query:\n${sqlQuery}"
 
                     def dbCommand = """@echo off
-                        sqlcmd -S localhost\\SQLEXPRESS -d jenkinsTesting -U %DB_CREDS_USR% -P %DB_CREDS_PSW% -i "Jenkins pipeline\\queries.sql"
+                        sqlcmd -S localhost\\SQLEXPRESS -d jenkinsTesting -U %DB_CREDS_USR% -P %DB_CREDS_PSW% -i "Jenkins pipeline\\queries.sql" > nul 2>&1
                     """
 
-                    def executeQuery = bat(script: dbCommand, returnStatus: true, hideStdout: true)
+                    def executeQuery = bat(script: dbCommand, returnStatus: true)
                     
                     if (executeQuery == 0) {
                         echo "Successfully executed the SQL query."
