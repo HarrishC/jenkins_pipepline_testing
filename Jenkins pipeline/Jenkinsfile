@@ -87,7 +87,7 @@ pipeline {
                     echo "Executing the following SQL query:\n${sqlQuery}"
 
                     def dbCommand = """@echo off
-                        sqlcmd -S localhost\\SQLEXPRESS -d jenkinsTesting -U %DB_CREDS_USR% -P %DB_CREDS_PSW% -i "Jenkins pipeline\\queries.sql" > nul 2>&1
+                        sqlcmd -S localhost\\SQLEXPRESS -d jenkinsTesting -U %DB_CREDS_USR% -P %DB_CREDS_PSW% -i "Jenkins pipeline\\queries.sql"
                     """
 
                     def executeQuery = bat(script: dbCommand, returnStatus: true)
