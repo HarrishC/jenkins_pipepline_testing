@@ -12,11 +12,6 @@ pipeline {
     }
 
     stages {
-        stage('Checkout') {
-            steps {
-                git branch: 'main', url: 'https://github.com/HarrishC/jenkins_pipepline_testing.git'
-            }
-        }
         stage('Build') {
             steps {
                 echo "Build number : ${BUILD_NUMBER}"
@@ -31,8 +26,9 @@ pipeline {
                     bat 'echo "Current Directory: " & cd & dir'
                     
                     // The command now reads from queries.sql using its absolute path via %WORKSPACE%
+                    // The command now specifies the "Jenkins pipeline" subdirectory!
                     def checkDbCommand = """@echo off
-                        sqlcmd -S localhost\\SQLEXPRESS -d jenkinsTesting -U %DB_CREDS_USR% -P %DB_CREDS_PSW% -i "queries.sql"
+                        sqlcmd -S localhost\\SQLEXPRESS -d jenkinsTesting -U %DB_CREDS_USR% -P %DB_CREDS_PSW% -i "Jenkins pipeline\\queries.sql"
                     """
                     
                     def result = bat(script: checkDbCommand, returnStatus: true)
@@ -85,6 +81,11 @@ pipeline {
                         error("Approval reason is not Yes or No. Ending the pipeline.")
                     }
                 }
+            }
+        }
+        stage('Clean Workspace'){
+            steps{
+                cleanWs()
             }
         }
     }
