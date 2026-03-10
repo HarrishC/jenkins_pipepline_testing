@@ -1,6 +1,10 @@
 pipeline {
     agent any
 
+    environment {
+        MSSQL_CONNECTION_STRING = 'Server=localhost\\SQLEXPRESS;Database=jenkinsTesting;Integrated Security=SSPI;TrustServerCertificate=True;'
+    }
+
     parameters {
         booleanParam(name: 'DEPLOY_TO_PROD', defaultValue: false, description: 'Deploy to production environment?')
         string(name: 'PrintingDifferentValue', defaultValue: 'test', description: 'Print the Default value')
@@ -10,6 +14,27 @@ pipeline {
         stage('Build') {
             steps {
                 echo "Build number : ${BUILD_NUMBER}"
+            }
+        }
+        stage('Check DB Connection') {
+            steps {
+                script {
+                    echo "Checking connection to SQL Server..."
+                    
+                    // The command uses Windows Authentication (-E) to connect to the server (-S)
+                    // and database (-d) and runs a simple query (-Q) to check the connection.
+                    def checkDbCommand = """
+                        sqlcmd -S localhost\\SQLEXPRESS -d jenkinsTesting -E -Q "SELECT 1 as ConnectionStatus"
+                    """
+                    
+                    def result = bat(script: checkDbCommand, returnStatus: true)
+                    
+                    if (result == 0) {
+                        echo "Successfully connected to the database."
+                    } else {
+                        error("Failed to connect to the database. Check connection string and server status.")
+                    }
+                }
             }
         }
         stage('Deploy') {
