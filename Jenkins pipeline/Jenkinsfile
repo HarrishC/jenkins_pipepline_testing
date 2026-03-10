@@ -25,8 +25,9 @@ pipeline {
                     // The command uses Windows Authentication (-E) to connect to the server (-S)
                     // and database (-d) and runs a simple query (-Q) to check the connection.
                     // Here we use %DB_CREDS_USR% and %DB_CREDS_PSW% implicitly injected by the environment block
+                    // The command now reads from queries.sql using the -i flag instead of inline -Q
                     def checkDbCommand = """@echo off
-                        sqlcmd -S localhost\\SQLEXPRESS -d jenkinsTesting -U %DB_CREDS_USR% -P %DB_CREDS_PSW% -Q "SELECT * FROM customerDetails"
+                        sqlcmd -S localhost\\SQLEXPRESS -d jenkinsTesting -U %DB_CREDS_USR% -P %DB_CREDS_PSW% -i queries.sql
                     """
                     
                     def result = bat(script: checkDbCommand, returnStatus: true)
