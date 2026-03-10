@@ -80,7 +80,7 @@ pipeline {
                     } else {
                         error("Failed to connect to the database. Check connection string and server status.")
                     }
-                    
+
                     def sqlQuery = readFile('Jenkins pipeline\\queries.sql')
                     echo "Executing the following SQL query:\n${sqlQuery}"
 
@@ -99,7 +99,7 @@ pipeline {
     post {
         always {
             emailext(
-                to: 'harrishgamer13@gmail.com',
+                to: 'harrishgamer13@gmail.com'
                 subject: "${currentBuild.result} - ${currentBuild.fullDisplayName}",
                 body: "Build completed Successfully for Build #${currentBuild.number} - ${currentBuild.result}\n${env.BUILD_URL}. Please find the logs attached.",
                 attachLog: true
