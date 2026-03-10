@@ -72,7 +72,7 @@ pipeline {
                     // Read the SQL script contents and print them to the Jenkins console
                     
                     def checkDbCommand = """
-                        sqlcmd -S localhost\\SQLEXPRESS -d jenkinsTesting -U %DB_CREDS_USR% -P %DB_CREDS_PSW%"
+                        sqlcmd -S localhost\\SQLEXPRESS -d jenkinsTesting -U %DB_CREDS_USR% -P %DB_CREDS_PSW%
                     """
                     
                     def result = bat(script: checkDbCommand, returnStatus: true)
