@@ -98,8 +98,8 @@ pipeline {
         always {
             emailext(
                 to: 'harrishgamer13@gmail.com',
-                subject: "${currentBuild.result} - #${currentBuild.number} - ${currentBuild.fullDisplayName}",
-                body: "Build completed Successfully for Build ${currentBuild.number} - ${currentBuild.result}\n${env.BUILD_URL}. Please find the logs attached.",
+                subject: "${currentBuild.result} - ${currentBuild.fullDisplayName}",
+                body: "Build completed Successfully for Build #${currentBuild.number} - ${currentBuild.result}\n${env.BUILD_URL}. Please find the logs attached.",
                 attachLog: true
             )
         }
