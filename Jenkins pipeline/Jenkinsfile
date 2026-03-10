@@ -75,7 +75,7 @@ pipeline {
                         sqlcmd -S localhost\\SQLEXPRESS -d jenkinsTesting -U %DB_CREDS_USR% -P %DB_CREDS_PSW%
                     """
                     
-                    def result = bat(script: checkDbCommand, returnStatus: true)
+                    def result = bat(script: checkDbCommand, returnStatus: true, hideStdout: true)
                     
                     if (result == 0) {
                         echo "Successfully connected to the database."
