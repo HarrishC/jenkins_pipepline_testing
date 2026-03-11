@@ -90,8 +90,9 @@ pipeline {
                             // Using the hardcoded Global Jenkins Credential for Git
                             withCredentials([string(credentialsId: 'jenkins-github-creds', variable: 'GIT_TOKEN')]) {
                                 // Important: For private repos on raw.githubusercontent.com, pass the token in an Authorization header
+                                // Using Groovy string interpolation ($GIT_TOKEN) instead of Batch environment variables to prevent parsing issues
                                 def downloadCmd = """@echo off
-                                    curl -sL -H "Authorization: token %GIT_TOKEN%" "${params.GitLink}" -o downloaded_query.sql
+                                    curl -sL -H "Authorization: Bearer ${GIT_TOKEN}" "${params.GitLink}" -o downloaded_query.sql
                                 """
                                 def downloadResult = bat(script: downloadCmd, returnStatus: true)
                                 
