@@ -90,10 +90,9 @@ pipeline {
                             echo "Downloading SQL script from private URL: ${params.GitLink}"
                             
                             // Using the hardcoded Global Jenkins Credential for Git
-                            withCredentials([string(credentialsId: 'jenkins-github-creds', variable: 'GIT_TOKEN')]) {
-                                // Pass the token in the Authorization header to ensure API/Raw access works correctly
+                            withCredentials([usernamePassword(credentialsId: 'jenkins-github-creds', passwordVariable: 'GIT_TOKEN', usernameVariable: 'GIT_USER')]) {
                                 def downloadCmd = """@echo off
-                                    curl -H "Authorization: token %GIT_TOKEN%" -H "Accept: application/vnd.github.v3.raw" -sL "${params.GitLink}" -o downloaded_query.sql
+                                    curl -u "%GIT_USER%:%GIT_TOKEN%" -H "Accept: application/vnd.github.v3.raw" -sL "${params.GitLink}" -o downloaded_query.sql
                                 """
                                 def downloadResult = bat(script: downloadCmd, returnStatus: true)
                                 
