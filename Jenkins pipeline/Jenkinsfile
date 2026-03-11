@@ -87,15 +87,17 @@ pipeline {
 
                     if (params.GitLink?.trim()) {
                         dir('queries') {
-                            echo "Downloading SQL script from URL: ${params.GitLink}"
-                            
-                            def downloadCmd = """@echo off
-                                curl -sL "${params.GitLink}" -o downloaded_query.sql
-                            """
-                            def downloadResult = bat(script: downloadCmd, returnStatus: true)
-                            
-                            if (downloadResult != 0) {
-                                error("Failed to download the SQL file from the provided Git link. Check the URL.")
+                            // Using the hardcoded Global Jenkins Credential for Git
+                            withCredentials([string(credentialsId: 'jenkins-github-creds', variable: 'GIT_TOKEN')]) {
+                                // Important: For private repos on raw.githubusercontent.com, pass the token in an Authorization header
+                                def downloadCmd = """@echo off
+                                    curl -sL -H "Authorization: token %GIT_TOKEN%" "${params.GitLink}" -o downloaded_query.sql
+                                """
+                                def downloadResult = bat(script: downloadCmd, returnStatus: true)
+                                
+                                if (downloadResult != 0) {
+                                    error("Failed to download the SQL file from the provided Git link. Check the URL and credentials.")
+                                }
                             }
                             
                             def sqlQuery = readFile('downloaded_query.sql')
