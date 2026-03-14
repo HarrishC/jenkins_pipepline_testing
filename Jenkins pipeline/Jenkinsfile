@@ -83,104 +83,43 @@ pipeline {
                         error("Failed to connect to the database. Check connection string and server status.")
                     }
 
-                    // Step 2: Execute the SQL file specified via SQL_FILE_NAME from the GitHub repo
-                    if (!params.SQL_FILE_NAME?.trim()) {
-                        error("SQL_FILE_NAME parameter is empty. Please specify the SQL file name (e.g., queries.sql).")
-                    }
-                    if (!params.GitLink?.trim()) {
-                        error("GitLink parameter is empty. Please provide the GitHub folder URL (e.g., https://github.com/user/repo/tree/main/sql/).")
-                    }
+                    // Parse the GitHub folder URL in Groovy to extract repo, branch, and file path
+                    // Input format: https://github.com/{owner}/{repo}/tree/{branch}/{folder}
+                    def gitLink = params.GitLink.trim().replaceAll('/$', '')
+                    def parts   = gitLink.replace('https://github.com/', '').split('/')
+                    def owner   = parts[0]
+                    def repo    = parts[1]
+                    def treeIdx = parts.findIndexOf { it == 'tree' || it == 'blob' }
+                    def branch  = treeIdx >= 0 ? parts[treeIdx + 1] : 'main'
+                    def folder  = treeIdx >= 0 ? parts[(treeIdx + 2)..-1].join('/') : ''
+                    def filePath = folder ? "${folder}/${params.SQL_FILE_NAME.trim()}" : params.SQL_FILE_NAME.trim()
+
+                    echo "Repo: ${owner}/${repo} | Branch: ${branch} | File: ${filePath}"
 
                     dir('queries') {
                         withCredentials([usernamePassword(credentialsId: 'jenkins-github-creds', usernameVariable: 'GIT_USER', passwordVariable: 'GIT_PASS')]) {
-                            def fileName = params.SQL_FILE_NAME.trim()
-                            def gitLink  = params.GitLink.trim().replaceAll('/$', '')
+                            // URL-encode password in Groovy to handle special chars like @
+                            def encodedPass = URLEncoder.encode(GIT_PASS, 'UTF-8')
+                            def cloneUrl    = "https://${GIT_USER}:${encodedPass}@github.com/${owner}/${repo}.git"
 
-                            def psClone = """
-                                \$ProgressPreference = 'SilentlyContinue'
-                                \$ErrorActionPreference = 'Stop'
-
-                                # ── Parse GitHub folder URL ───────────────────────────────────────
-                                # Input:  https://github.com/{owner}/{repo}/tree/{branch}/{folder}
-                                \$stripped = '${gitLink}' -replace '^https://github\\.com/', ''
-                                \$parts    = \$stripped -split '/'
-                                \$owner    = \$parts[0]
-                                \$repo     = \$parts[1]
-                                \$treeIdx  = [Array]::IndexOf(\$parts, 'tree')
-                                if (\$treeIdx -lt 0) { \$treeIdx = [Array]::IndexOf(\$parts, 'blob') }
-
-                                if (\$treeIdx -ge 0) {
-                                    \$branch = \$parts[\$treeIdx + 1]
-                                    \$folder = (\$parts[(\$treeIdx + 2)..(\$parts.Length - 1)] -join '/').TrimEnd('/')
-                                } else {
-                                    \$branch = 'main'
-                                    \$folder = ''
-                                }
-
-                                \$filePath = if (\$folder) { "\$folder/${fileName}" } else { '${fileName}' }
-                                # URL-encode the password so special characters (e.g. @) don't break the URL
-                                \$encodedPass = [System.Uri]::EscapeDataString(\$env:GIT_PASS)
-                                \$cloneUrl = "https://\$env:GIT_USER:\$encodedPass@github.com/\$owner/\$repo.git"
-
-                                Write-Host "Repo   : \$owner/\$repo"
-                                Write-Host "Branch : \$branch"
-                                Write-Host "File   : \$filePath"
-
-                                # ── Sparse checkout — only fetch the target folder, not the whole repo ──
-                                if (Test-Path 'sql_clone') { Remove-Item -Recurse -Force 'sql_clone' }
-                                New-Item -ItemType Directory -Force -Path 'sql_clone' | Out-Null
-                                Push-Location 'sql_clone'
-
-                                git init
-                                git remote add origin \$cloneUrl
-                                git sparse-checkout init --cone
-                                # Fetch only the folder containing the SQL file (or root if no subfolder)
-                                if (\$folder) {
-                                    git sparse-checkout set \$folder
-                                } else {
-                                    git sparse-checkout set '/*'
-                                }
-                                git fetch --depth 1 origin \$branch
-                                git checkout FETCH_HEAD
-                                if (\$LASTEXITCODE -ne 0) {
-                                    Pop-Location
-                                    Write-Error "git checkout failed. Check the GitLink URL, branch, and credentials."
-                                    exit 1
-                                }
-                                Pop-Location
-
-                                \$src = "sql_clone/\$filePath"
-                                if (-not (Test-Path \$src)) {
-                                    Write-Error "File not found in repo at path: \$filePath"
-                                    exit 1
-                                }
-
-                                Copy-Item \$src -Destination 'query_to_run.sql' -Force
-                                Remove-Item -Recurse -Force 'sql_clone'
-                                Write-Host "Ready: query_to_run.sql (\$((Get-Item 'query_to_run.sql').Length) bytes)"
+                            bat """
+                                if exist sql_clone rmdir /s /q sql_clone
+                                git clone --depth 1 --branch ${branch} --no-tags ${cloneUrl} sql_clone
+                                copy sql_clone\\${filePath.replace('/', '\\')} query_to_run.sql
+                                rmdir /s /q sql_clone
                             """
-                            def cloneResult = powershell(script: psClone, returnStatus: true)
-                            if (cloneResult != 0) {
-                                error("Failed to retrieve '${params.SQL_FILE_NAME}' from GitHub. Check the GitLink URL format and file path.")
-                            }
                         }
 
-                        // Guard: fail immediately if GitHub returned HTML instead of SQL
-                        def content = readFile('query_to_run.sql')
-                        if (content.toLowerCase().contains('<!doctype html') || content.toLowerCase().contains('<html')) {
-                            error("GitHub returned an HTML page instead of '${params.SQL_FILE_NAME}'. Check the jenkins-github-creds credential type (must be Username+Password) and PAT scope.")
-                        }
-
-                        echo "SQL file '${params.SQL_FILE_NAME}' ready. Executing against ${DB_NAME}..."
-
-                        def dbCommand = """@echo off
+                        echo "Executing '${params.SQL_FILE_NAME}' against ${DB_NAME}..."
+                        def executeResult = bat(script: """@echo off
                             sqlcmd -S localhost\\SQLEXPRESS -d ${DB_NAME} -U %DB_CREDS_USR% -P %DB_CREDS_PSW% -i "query_to_run.sql"
-                        """
-                        def executeResult = bat(script: dbCommand, returnStatus: true)
+                        """, returnStatus: true)
                         if (executeResult == 0) {
                             echo "Successfully executed '${params.SQL_FILE_NAME}'."
                         } else {
                             error("Failed to execute '${params.SQL_FILE_NAME}'. Check the SQL syntax and database connection.")
+                        }
+                    } the SQL syntax and database connection.")
                         }
                     }
                 }
