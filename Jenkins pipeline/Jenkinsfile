@@ -112,10 +112,18 @@ pipeline {
                             ]
                         ])
 
-                        // Copy the specific SQL file out to the working location
-                        def src = filePath.replace('/', '\\')
+                        // Copy the specific SQL file to the workspace queries folder
+                        def src  = filePath.replace('/', '\\')
+                        def dest = "${env.WORKSPACE}\\queries"
                         bat """@echo off
-                            copy ${src} ..\\queries\\query_to_run.sql
+                            echo Copying: ${src}
+                            if not exist "${dest}" mkdir "${dest}"
+                            copy /Y "${src}" "${dest}\\query_to_run.sql"
+                            if errorlevel 1 (
+                                echo ERROR: Failed to copy ${src}
+                                exit /b 1
+                            )
+                            echo Copied successfully to ${dest}\\query_to_run.sql
                         """
                     }
                     // Clean up the repo clone after extracting the file
