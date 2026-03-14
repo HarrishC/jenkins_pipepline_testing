@@ -125,7 +125,8 @@ pipeline {
 
                     // Execute the downloaded SQL file against the database
                     dir('queries') {
-                        echo "Executing '${params.SQL_FILE_NAME}' against ${DB_NAME}..."
+                        def sqlQuery = readFile('query_to_run.sql')
+                        echo "SQL Query to execute:\n${sqlQuery}"
                         def executeResult = bat(script: """@echo off
                             sqlcmd -S localhost\\SQLEXPRESS -d ${DB_NAME} -U %DB_CREDS_USR% -P %DB_CREDS_PSW% -i "query_to_run.sql"
                         """, returnStatus: true)
