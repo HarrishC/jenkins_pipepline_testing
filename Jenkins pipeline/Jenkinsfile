@@ -123,7 +123,7 @@ pipeline {
                                 echo ERROR: Failed to copy ${src}
                                 exit /b 1
                             )
-                            echo Copied successfully to ${dest}\\query_to_run.sql
+                            echo SQL file copied successfully.
                         """
                     }
                     // Clean up the repo clone after extracting the file
