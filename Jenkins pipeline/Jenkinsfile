@@ -29,7 +29,7 @@ pipeline {
             steps {
                 script {
                     if (params.DEPLOY_TO_PROD == true) {
-                        echo 'Hello World!'
+                        echo 'Deploying to production environment...'
                         // Add your deployment commands here
                     } else {
                         error('Deploy to production is set to false. Failing the pipeline.')
@@ -60,7 +60,6 @@ pipeline {
                         error("Approval reason is ${userInput}. Ending the pipeline.")
                     } else if (userInput == 'Y') {
                         echo "Approval reason is ${userInput}. Proceeding with the pipeline."
-                        echo 'https://harrishc.github.io/html-video-background/'
                     } else {
                         error("Approval reason is not Yes or No. Ending the pipeline.")
                     }
