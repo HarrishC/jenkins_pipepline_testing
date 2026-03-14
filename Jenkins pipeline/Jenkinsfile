@@ -107,7 +107,7 @@ pipeline {
                             // Use Authorization header instead of URL token injection.
                             // Embedding tokens in URLs causes GitHub to return an HTML login page.
                             def downloadCmd = """@echo off
-                                curl -sL -H "Authorization: Bearer %GIT_TOKEN%" -H "Accept: application/vnd.github.v3.raw" "${rawFileUrl}" -o query_to_run.sql
+                                curl -f -sL -H "Authorization: token %GIT_TOKEN%" "${rawFileUrl}" -o query_to_run.sql
                             """
                             def downloadResult = bat(script: downloadCmd, returnStatus: true)
                             if (downloadResult != 0) {
