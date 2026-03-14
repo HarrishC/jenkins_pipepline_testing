@@ -104,15 +104,28 @@ pipeline {
 
                     dir('queries') {
                         withCredentials([string(credentialsId: 'jenkins-github-creds', variable: 'GIT_TOKEN')]) {
-                            // Use Authorization header instead of URL token injection.
-                            // Embedding tokens in URLs causes GitHub to return an HTML login page.
-                            def downloadCmd = """@echo off
-                                curl -f -sL -H "Authorization: token %GIT_TOKEN%" "${rawFileUrl}" -o query_to_run.sql
+                            // Use PowerShell Invoke-WebRequest — more reliable than curl on Windows for auth headers.
+                            def psDownload = """
+                                \$ProgressPreference = 'SilentlyContinue'
+                                \$headers = @{ 'Authorization' = 'token ' + \$env:GIT_TOKEN }
+                                try {
+                                    Invoke-WebRequest -Uri '${rawFileUrl}' -Headers \$headers -OutFile 'query_to_run.sql' -UseBasicParsing
+                                    Write-Host 'Download complete.'
+                                } catch {
+                                    Write-Error "Download failed: \$_"
+                                    exit 1
+                                }
                             """
-                            def downloadResult = bat(script: downloadCmd, returnStatus: true)
+                            def downloadResult = powershell(script: psDownload, returnStatus: true)
                             if (downloadResult != 0) {
-                                error("Failed to download '${params.SQL_FILE_NAME}' from the GitHub repo. Check the file name, GitLink base URL, and credentials.")
+                                error("Failed to download '${params.SQL_FILE_NAME}'. Check the file name, GitLink URL, and that the jenkins-github-creds PAT has 'repo' scope.")
                             }
+                        }
+
+                        // Guard: detect if GitHub returned an HTML login page instead of the SQL file
+                        def downloaded = readFile('query_to_run.sql')
+                        if (downloaded.toLowerCase().contains('<!doctype html') || downloaded.toLowerCase().contains('<html')) {
+                            error("GitHub returned an HTML login page instead of '${params.SQL_FILE_NAME}'. The PAT in 'jenkins-github-creds' is likely invalid, expired, or missing 'repo' scope.")
                         }
 
                         def sqlQuery = readFile('query_to_run.sql')
