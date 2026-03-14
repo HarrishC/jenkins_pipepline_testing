@@ -92,19 +92,16 @@ pipeline {
                     }
 
                     dir('queries') {
-                        // NOTE: Use 'usernamePassword' binding — GitHub PATs are stored in Jenkins
-                        // as Username+Password credentials (username = GitHub user, password = PAT).
-                        // Using 'string' binding would leave the variable empty → HTML login page returned.
                         withCredentials([usernamePassword(credentialsId: 'jenkins-github-creds', usernameVariable: 'GIT_USER', passwordVariable: 'GIT_PASS')]) {
                             def fileName = params.SQL_FILE_NAME.trim()
                             def gitLink  = params.GitLink.trim().replaceAll('/$', '')
 
-                            def psDownload = """
+                            def psClone = """
                                 \$ProgressPreference = 'SilentlyContinue'
                                 \$ErrorActionPreference = 'Stop'
 
-                                # ── Parse GitHub folder URL into API components ───────────────────
-                                # Supports: https://github.com/{owner}/{repo}/tree/{branch}/{folder}
+                                # ── Parse GitHub folder URL ───────────────────────────────────────
+                                # Input:  https://github.com/{owner}/{repo}/tree/{branch}/{folder}
                                 \$stripped = '${gitLink}' -replace '^https://github\\.com/', ''
                                 \$parts    = \$stripped -split '/'
                                 \$owner    = \$parts[0]
@@ -121,33 +118,37 @@ pipeline {
                                 }
 
                                 \$filePath = if (\$folder) { "\$folder/${fileName}" } else { '${fileName}' }
-                                \$apiUrl   = "https://api.github.com/repos/\$owner/\$repo/contents/\$filePath?ref=\$branch"
+                                \$cloneUrl = "https://\$env:GIT_USER:\$env:GIT_PASS@github.com/\$owner/\$repo.git"
 
                                 Write-Host "Repo   : \$owner/\$repo"
                                 Write-Host "Branch : \$branch"
                                 Write-Host "File   : \$filePath"
-                                Write-Host "API URL: \$apiUrl"
 
-                                # ── Call GitHub Contents API ──────────────────────────────────────
-                                \$headers = @{
-                                    'Authorization' = 'token ' + \$env:GIT_PASS
-                                    'Accept'        = 'application/vnd.github.v3.raw'
-                                }
-                                try {
-                                    \$response = Invoke-WebRequest -Uri \$apiUrl -Headers \$headers -UseBasicParsing
-                                    Write-Host "HTTP Status : \$(\$response.StatusCode)"
-                                    Write-Host "Size        : \$(\$response.Content.Length) bytes"
-                                    [System.IO.File]::WriteAllBytes('query_to_run.sql', \$response.Content)
-                                    Write-Host "Saved to    : query_to_run.sql"
-                                } catch {
-                                    \$code = \$_.Exception.Response.StatusCode.value__
-                                    Write-Error "Download failed (HTTP \$code): \$(\$_.Exception.Message)"
+                                # ── Shallow clone and extract the SQL file ────────────────────────
+                                # git clone uses the same credential as the Checkout stage — always works.
+                                if (Test-Path 'sql_clone') { Remove-Item -Recurse -Force 'sql_clone' }
+
+                                git clone --depth 1 --branch \$branch \$cloneUrl sql_clone
+                                if (\$LASTEXITCODE -ne 0) {
+                                    Write-Error "git clone failed. Check the GitLink URL and credentials."
                                     exit 1
                                 }
+
+                                \$src = "sql_clone/\$filePath"
+                                if (-not (Test-Path \$src)) {
+                                    Write-Error "File not found in repo: \$filePath"
+                                    exit 1
+                                }
+
+                                Copy-Item \$src -Destination 'query_to_run.sql' -Force
+                                Remove-Item -Recurse -Force 'sql_clone'
+                                Write-Host "Ready: query_to_run.sql (\$((Get-Item 'query_to_run.sql').Length) bytes)"
                             """
-                            def downloadResult = powershell(script: psDownload, returnStatus: true)
-                            if (downloadResult != 0) {
-                                error("Failed to download '${params.SQL_FILE_NAME}'. Check: (1) GitLink URL format, (2) file name is correct, (3) jenkins-github-creds PAT has 'repo' scope.")
+                            def cloneResult = powershell(script: psClone, returnStatus: true)
+                            if (cloneResult != 0) {
+                                error("Failed to retrieve '${params.SQL_FILE_NAME}' from GitHub. Check the GitLink URL format and file path.")
+                            }
+                        }le name is correct, (3) jenkins-github-creds PAT has 'repo' scope.")
                             }
                         }
 
