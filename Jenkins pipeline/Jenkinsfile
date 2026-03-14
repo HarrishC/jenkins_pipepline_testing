@@ -114,7 +114,7 @@ pipeline {
 
                         // Copy the specific SQL file out to the working location
                         def src = filePath.replace('/', '\\')
-                        bat "@echo off copy ${src} ..\\queries\\query_to_run.sql"
+                        bat "copy ${src} ..\\queries\\query_to_run.sql"
                     }
                     // Clean up the repo clone after extracting the file
                     bat "rmdir /s /q sql_repo"
