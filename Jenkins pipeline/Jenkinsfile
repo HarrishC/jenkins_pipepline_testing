@@ -132,17 +132,16 @@ pipeline {
                     """
 
                     // Execute the downloaded SQL file against the database
-                    dir('queries') {
-                        def sqlQuery = readFile('query_to_run.sql')
-                        echo "SQL Query to execute:\n${sqlQuery}"
-                        def executeResult = bat(script: """@echo off
-                            sqlcmd -S localhost\\SQLEXPRESS -d ${DB_NAME} -U %DB_CREDS_USR% -P %DB_CREDS_PSW% -i "query_to_run.sql"
-                        """, returnStatus: true)
-                        if (executeResult == 0) {
-                            echo "Successfully executed '${params.SQL_FILE_NAME}'."
-                        } else {
-                            error("Failed to execute '${params.SQL_FILE_NAME}'. Check the SQL syntax and database connection.")
-                        }
+                    def sqlFile = "${env.WORKSPACE}\\queries\\query_to_run.sql"
+                    def sqlQuery = readFile("${env.WORKSPACE}/queries/query_to_run.sql")
+                    echo "SQL Query to execute:\n${sqlQuery}"
+                    def executeResult = bat(script: """@echo off
+                        sqlcmd -S localhost\\SQLEXPRESS -d ${DB_NAME} -U %DB_CREDS_USR% -P %DB_CREDS_PSW% -i "${sqlFile}"
+                    """, returnStatus: true)
+                    if (executeResult == 0) {
+                        echo "Successfully executed '${params.SQL_FILE_NAME}'."
+                    } else {
+                        error("Failed to execute '${params.SQL_FILE_NAME}'. Check the SQL syntax and database connection.")
                     }
                 }
             }
