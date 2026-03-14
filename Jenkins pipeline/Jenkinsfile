@@ -126,19 +126,32 @@ pipeline {
                                 Write-Host "Branch : \$branch"
                                 Write-Host "File   : \$filePath"
 
-                                # ── Shallow clone and extract the SQL file ────────────────────────
-                                # git clone uses the same credential as the Checkout stage — always works.
+                                # ── Sparse checkout — only fetch the target folder, not the whole repo ──
                                 if (Test-Path 'sql_clone') { Remove-Item -Recurse -Force 'sql_clone' }
+                                New-Item -ItemType Directory -Force -Path 'sql_clone' | Out-Null
+                                Push-Location 'sql_clone'
 
-                                git clone --depth 1 --branch \$branch \$cloneUrl sql_clone
+                                git init
+                                git remote add origin \$cloneUrl
+                                git sparse-checkout init --cone
+                                # Fetch only the folder containing the SQL file (or root if no subfolder)
+                                if (\$folder) {
+                                    git sparse-checkout set \$folder
+                                } else {
+                                    git sparse-checkout set '/*'
+                                }
+                                git fetch --depth 1 origin \$branch
+                                git checkout FETCH_HEAD
                                 if (\$LASTEXITCODE -ne 0) {
-                                    Write-Error "git clone failed. Check the GitLink URL and credentials."
+                                    Pop-Location
+                                    Write-Error "git checkout failed. Check the GitLink URL, branch, and credentials."
                                     exit 1
                                 }
+                                Pop-Location
 
                                 \$src = "sql_clone/\$filePath"
                                 if (-not (Test-Path \$src)) {
-                                    Write-Error "File not found in repo: \$filePath"
+                                    Write-Error "File not found in repo at path: \$filePath"
                                     exit 1
                                 }
 
