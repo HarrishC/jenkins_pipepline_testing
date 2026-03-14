@@ -118,10 +118,8 @@ pipeline {
                             echo "Successfully executed '${params.SQL_FILE_NAME}'."
                         } else {
                             error("Failed to execute '${params.SQL_FILE_NAME}'. Check the SQL syntax and database connection.")
+                        }
                     }
-                }
-            }
-        }
                 }
             }
         }
