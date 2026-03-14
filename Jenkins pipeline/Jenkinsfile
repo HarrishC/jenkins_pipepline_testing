@@ -11,6 +11,7 @@ pipeline {
         booleanParam(name: 'DEPLOY_TO_PROD', defaultValue: false, description: 'Deploy to production environment?')
         string(name: 'PrintingDifferentValue', defaultValue: 'test', description: 'Print the Default value')
         string(name: 'GitLink', defaultValue: '', description: 'Enter the raw Git URL to the SQL script (e.g., https://raw.githubusercontent.com/.../queries.sql)')
+        string(name: 'SQL_FILE_NAME', defaultValue: '', description: 'Enter the SQL file name (e.g., queries.sql)')
     }
 
     stages {
@@ -70,56 +71,57 @@ pipeline {
             steps {
                 script {
                     echo "Checking connection to SQL Server..."
-                    // The command now reads from queries.sql using its absolute path via %WORKSPACE%
-                    // Read the SQL script contents and print them to the Jenkins console
-                    
+
+                    // Step 1: Verify DB connectivity
                     def checkDbCommand = """@echo off
                         sqlcmd -S localhost\\SQLEXPRESS -d jenkinsTesting -U %DB_CREDS_USR% -P %DB_CREDS_PSW% > nul 2>&1
                     """
-                    
                     def result = bat(script: checkDbCommand, returnStatus: true)
-                    
                     if (result == 0) {
                         echo "Successfully connected to the database: ${DB_NAME}"
                     } else {
                         error("Failed to connect to the database. Check connection string and server status.")
                     }
 
-                    if (params.GitLink?.trim()) {
-                        dir('queries') {
-                            // Using the hardcoded Global Jenkins Credential for Git
-                            withCredentials([string(credentialsId: 'jenkins-github-creds', variable: 'GIT_TOKEN')]) {
-                                // Since header injection on Windows curl often fails or gets escaped incorrectly,
-                                // we inject the token directly into the URL using Basic Auth format: https://token@raw.github...
-                                def secureUrl = params.GitLink.replaceFirst('https://', "https://${GIT_TOKEN}@")
-                                
-                                def downloadCmd = """@echo off
-                                    curl -sL "${secureUrl}" -o downloaded_query.sql
-                                """
-                                def downloadResult = bat(script: downloadCmd, returnStatus: true)
-                                
-                                if (downloadResult != 0) {
-                                    error("Failed to download the SQL file from the provided Git link. Check the URL and credentials.")
-                                }
-                            }
-                            
-                            def sqlQuery = readFile('downloaded_query.sql')
-                            echo "Executing the following SQL query:\n${sqlQuery}"
+                    // Step 2: Execute the SQL file specified via SQL_FILE_NAME from the GitHub repo
+                    if (!params.SQL_FILE_NAME?.trim()) {
+                        error("SQL_FILE_NAME parameter is empty. Please specify the SQL file name (e.g., queries.sql).")
+                    }
+                    if (!params.GitLink?.trim()) {
+                        error("GitLink parameter is empty. Please provide the base raw URL of the GitHub repo (e.g., https://raw.githubusercontent.com/user/repo/main/).")
+                    }
 
-                            def dbCommand = """@echo off
-                                sqlcmd -S localhost\\SQLEXPRESS -d ${DB_NAME} -U %DB_CREDS_USR% -P %DB_CREDS_PSW% -i "downloaded_query.sql"
+                    // Construct the full raw URL by combining the base GitLink and the file name
+                    def baseUrl = params.GitLink.endsWith('/') ? params.GitLink : params.GitLink + '/'
+                    def rawFileUrl = baseUrl + params.SQL_FILE_NAME.trim()
+                    echo "Downloading SQL file: ${params.SQL_FILE_NAME} from: ${rawFileUrl}"
+
+                    dir('queries') {
+                        withCredentials([string(credentialsId: 'jenkins-github-creds', variable: 'GIT_TOKEN')]) {
+                            // Inject token into URL for private repo access
+                            def secureUrl = rawFileUrl.replaceFirst('https://', "https://${GIT_TOKEN}@")
+
+                            def downloadCmd = """@echo off
+                                curl -sL "${secureUrl}" -o query_to_run.sql
                             """
-
-                            def executeQuery = bat(script: dbCommand, returnStatus: true)
-                            
-                            if (executeQuery == 0) {
-                                echo "Successfully executed the SQL query."
-                            } else {
-                                error("Failed to execute the SQL query. Check the query and database connection.")
+                            def downloadResult = bat(script: downloadCmd, returnStatus: true)
+                            if (downloadResult != 0) {
+                                error("Failed to download '${params.SQL_FILE_NAME}' from the GitHub repo. Check the file name, GitLink base URL, and credentials.")
                             }
                         }
-                    } else {
-                        echo "No GitLink provided, skipping SQL execution."
+
+                        def sqlQuery = readFile('query_to_run.sql')
+                        echo "Executing SQL file '${params.SQL_FILE_NAME}':\n${sqlQuery}"
+
+                        def dbCommand = """@echo off
+                            sqlcmd -S localhost\\SQLEXPRESS -d ${DB_NAME} -U %DB_CREDS_USR% -P %DB_CREDS_PSW% -i "query_to_run.sql"
+                        """
+                        def executeResult = bat(script: dbCommand, returnStatus: true)
+                        if (executeResult == 0) {
+                            echo "Successfully executed '${params.SQL_FILE_NAME}'."
+                        } else {
+                            error("Failed to execute '${params.SQL_FILE_NAME}'. Check the SQL syntax and database connection.")
+                        }
                     }
                 }
             }
