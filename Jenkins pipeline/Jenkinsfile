@@ -14,14 +14,12 @@ pipeline {
         string(name: 'SQL_FILE_NAME', defaultValue: '', description: 'Enter the SQL file name (e.g., queries.sql)')
     }
 
-    stages{
-        stage('Delete Workspace'){
-            steps{
+    stages {
+        stage('Delete Workspace') {
+            steps {
                 deleteDir()
             }
         }
-    }
-    stages {
         stage('Checkout') {
             steps {
                 git branch: 'main', url: 'https://github.com/HarrishC/jenkins_pipepline_testing.git'
