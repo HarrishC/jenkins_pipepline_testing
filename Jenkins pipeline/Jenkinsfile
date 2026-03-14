@@ -15,11 +15,6 @@ pipeline {
     }
 
     stages {
-        stage('Delete Workspace') {
-            steps {
-                deleteDir()
-            }
-        }
         stage('Checkout') {
             steps {
                 git branch: 'main', url: 'https://github.com/HarrishC/jenkins_pipepline_testing.git'
