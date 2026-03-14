@@ -88,30 +88,76 @@ pipeline {
                         error("SQL_FILE_NAME parameter is empty. Please specify the SQL file name (e.g., queries.sql).")
                     }
                     if (!params.GitLink?.trim()) {
-                        error("GitLink parameter is empty. Please provide the base raw URL of the GitHub repo (e.g., https://raw.githubusercontent.com/user/repo/main/).")
+                        error("GitLink parameter is empty. Please provide the GitHub folder URL (e.g., https://github.com/user/repo/tree/main/sql/).")
                     }
 
-                    // Construct the full raw URL by combining the base GitLink and the file name
-                    def baseUrl = params.GitLink.endsWith('/') ? params.GitLink : params.GitLink + '/'
-                    def rawFileUrl = baseUrl + params.SQL_FILE_NAME.trim()
-                    echo "Downloading SQL file: ${params.SQL_FILE_NAME} from: ${rawFileUrl}"
-
                     dir('queries') {
-                        withCredentials([string(credentialsId: 'jenkins-github-creds', variable: 'GIT_TOKEN')]) {
-                            // Inject token into URL for private repo access
-                            def secureUrl = rawFileUrl.replaceFirst('https://', "https://${GIT_TOKEN}@")
+                        // NOTE: Use 'usernamePassword' binding — GitHub PATs are stored in Jenkins
+                        // as Username+Password credentials (username = GitHub user, password = PAT).
+                        // Using 'string' binding would leave the variable empty → HTML login page returned.
+                        withCredentials([usernamePassword(credentialsId: 'jenkins-github-creds', usernameVariable: 'GIT_USER', passwordVariable: 'GIT_PASS')]) {
+                            def fileName = params.SQL_FILE_NAME.trim()
+                            def gitLink  = params.GitLink.trim().replaceAll('/$', '')
 
-                            def downloadCmd = """@echo off
-                                curl -sL "${secureUrl}" -o query_to_run.sql
+                            def psDownload = """
+                                \$ProgressPreference = 'SilentlyContinue'
+                                \$ErrorActionPreference = 'Stop'
+
+                                # ── Parse GitHub folder URL into API components ───────────────────
+                                # Supports: https://github.com/{owner}/{repo}/tree/{branch}/{folder}
+                                \$stripped = '${gitLink}' -replace '^https://github\\.com/', ''
+                                \$parts    = \$stripped -split '/'
+                                \$owner    = \$parts[0]
+                                \$repo     = \$parts[1]
+                                \$treeIdx  = [Array]::IndexOf(\$parts, 'tree')
+                                if (\$treeIdx -lt 0) { \$treeIdx = [Array]::IndexOf(\$parts, 'blob') }
+
+                                if (\$treeIdx -ge 0) {
+                                    \$branch = \$parts[\$treeIdx + 1]
+                                    \$folder = (\$parts[(\$treeIdx + 2)..(\$parts.Length - 1)] -join '/').TrimEnd('/')
+                                } else {
+                                    \$branch = 'main'
+                                    \$folder = ''
+                                }
+
+                                \$filePath = if (\$folder) { "\$folder/${fileName}" } else { '${fileName}' }
+                                \$apiUrl   = "https://api.github.com/repos/\$owner/\$repo/contents/\$filePath?ref=\$branch"
+
+                                Write-Host "Repo   : \$owner/\$repo"
+                                Write-Host "Branch : \$branch"
+                                Write-Host "File   : \$filePath"
+                                Write-Host "API URL: \$apiUrl"
+
+                                # ── Call GitHub Contents API ──────────────────────────────────────
+                                \$headers = @{
+                                    'Authorization' = 'token ' + \$env:GIT_PASS
+                                    'Accept'        = 'application/vnd.github.v3.raw'
+                                }
+                                try {
+                                    \$response = Invoke-WebRequest -Uri \$apiUrl -Headers \$headers -UseBasicParsing
+                                    Write-Host "HTTP Status : \$(\$response.StatusCode)"
+                                    Write-Host "Size        : \$(\$response.Content.Length) bytes"
+                                    [System.IO.File]::WriteAllBytes('query_to_run.sql', \$response.Content)
+                                    Write-Host "Saved to    : query_to_run.sql"
+                                } catch {
+                                    \$code = \$_.Exception.Response.StatusCode.value__
+                                    Write-Error "Download failed (HTTP \$code): \$(\$_.Exception.Message)"
+                                    exit 1
+                                }
                             """
-                            def downloadResult = bat(script: downloadCmd, returnStatus: true)
+                            def downloadResult = powershell(script: psDownload, returnStatus: true)
                             if (downloadResult != 0) {
-                                error("Failed to download '${params.SQL_FILE_NAME}' from the GitHub repo. Check the file name, GitLink base URL, and credentials.")
+                                error("Failed to download '${params.SQL_FILE_NAME}'. Check: (1) GitLink URL format, (2) file name is correct, (3) jenkins-github-creds PAT has 'repo' scope.")
                             }
                         }
 
-                        def sqlQuery = readFile('query_to_run.sql')
-                        echo "Executing SQL file '${params.SQL_FILE_NAME}':\n${sqlQuery}"
+                        // Guard: fail immediately if GitHub returned HTML instead of SQL
+                        def content = readFile('query_to_run.sql')
+                        if (content.toLowerCase().contains('<!doctype html') || content.toLowerCase().contains('<html')) {
+                            error("GitHub returned an HTML page instead of '${params.SQL_FILE_NAME}'. Check the jenkins-github-creds credential type (must be Username+Password) and PAT scope.")
+                        }
+
+                        echo "SQL file '${params.SQL_FILE_NAME}' ready. Executing against ${DB_NAME}..."
 
                         def dbCommand = """@echo off
                             sqlcmd -S localhost\\SQLEXPRESS -d ${DB_NAME} -U %DB_CREDS_USR% -P %DB_CREDS_PSW% -i "query_to_run.sql"
