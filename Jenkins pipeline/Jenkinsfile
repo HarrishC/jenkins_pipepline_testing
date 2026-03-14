@@ -118,7 +118,9 @@ pipeline {
                                 }
 
                                 \$filePath = if (\$folder) { "\$folder/${fileName}" } else { '${fileName}' }
-                                \$cloneUrl = "https://\$env:GIT_USER:\$env:GIT_PASS@github.com/\$owner/\$repo.git"
+                                # URL-encode the password so special characters (e.g. @) don't break the URL
+                                \$encodedPass = [System.Uri]::EscapeDataString(\$env:GIT_PASS)
+                                \$cloneUrl = "https://\$env:GIT_USER:\$encodedPass@github.com/\$owner/\$repo.git"
 
                                 Write-Host "Repo   : \$owner/\$repo"
                                 Write-Host "Branch : \$branch"
