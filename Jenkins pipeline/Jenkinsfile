@@ -96,19 +96,28 @@ pipeline {
 
                     echo "Repo: ${owner}/${repo} | Branch: ${branch} | File: ${filePath}"
 
-                    dir('queries') {
-                        withCredentials([usernamePassword(credentialsId: 'jenkins-github-creds', usernameVariable: 'GIT_USER', passwordVariable: 'GIT_PASS')]) {
-                            // URL-encode password in Groovy to handle special chars like @
-                            def encodedPass = URLEncoder.encode(GIT_PASS, 'UTF-8')
-                            def cloneUrl    = "https://${GIT_USER}:${encodedPass}@github.com/${owner}/${repo}.git"
+                    dir('sql_repo') {
+                        // Use Jenkins native SCM checkout — credentials handled by Jenkins,
+                        // no URL construction or token embedding needed.
+                        checkout([
+                            $class: 'GitSCM',
+                            branches: [[name: "*/${branch}"]],
+                            userRemoteConfigs: [[
+                                url: "https://github.com/${owner}/${repo}.git",
+                                credentialsId: 'jenkins-github-creds'
+                            ]],
+                            extensions: [
+                                [$class: 'SparseCheckoutPaths', sparseCheckoutPaths: [[path: folder ?: '.']]],
+                                [$class: 'CloneOption', depth: 1, shallow: true, noTags: true, timeout: 60]
+                            ]
+                        ])
 
-                            bat """
-                                if exist sql_clone rmdir /s /q sql_clone
-                                git clone --depth 1 --branch ${branch} --no-tags ${cloneUrl} sql_clone
-                                copy sql_clone\\${filePath.replace('/', '\\')} query_to_run.sql
-                                rmdir /s /q sql_clone
-                            """
-                        }
+                        // Copy the specific SQL file out to the working location
+                        def src = filePath.replace('/', '\\')
+                        bat "copy ${src} ..\\queries\\query_to_run.sql"
+                    }
+                    // Clean up the repo clone after extracting the file
+                    bat "rmdir /s /q sql_repo"
 
                         echo "Executing '${params.SQL_FILE_NAME}' against ${DB_NAME}..."
                         def executeResult = bat(script: """@echo off
