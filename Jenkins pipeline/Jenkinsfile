@@ -98,11 +98,10 @@ pipeline {
 
                     dir('queries') {
                         withCredentials([string(credentialsId: 'jenkins-github-creds', variable: 'GIT_TOKEN')]) {
-                            // Inject token into URL for private repo access
-                            def secureUrl = rawFileUrl.replaceFirst('https://', "https://${GIT_TOKEN}@")
-
+                            // Use Authorization header instead of URL token injection.
+                            // Embedding tokens in URLs causes GitHub to return an HTML login page.
                             def downloadCmd = """@echo off
-                                curl -sL "${secureUrl}" -o query_to_run.sql
+                                curl -sL -H "Authorization: Bearer %GIT_TOKEN%" -H "Accept: application/vnd.github.v3.raw" "${rawFileUrl}" -o query_to_run.sql
                             """
                             def downloadResult = bat(script: downloadCmd, returnStatus: true)
                             if (downloadResult != 0) {
