@@ -118,7 +118,7 @@ pipeline {
                         bat """@echo off
                             echo Copying: ${src}
                             if not exist "${dest}" mkdir "${dest}"
-                            copy /Y "${src}" "${dest}\\query_to_run.sql"
+                            copy /Y "${src}" "${dest}\\${params.SQL_FILE_NAME.trim()}"
                             if errorlevel 1 (
                                 echo ERROR: Failed to copy ${src}
                                 exit /b 1
@@ -132,8 +132,8 @@ pipeline {
                     """
 
                     // Execute the downloaded SQL file against the database
-                    def sqlFile = "${env.WORKSPACE}\\queries\\query_to_run.sql"
-                    def sqlQuery = readFile("${env.WORKSPACE}/queries/query_to_run.sql")
+                    def sqlFile = "${env.WORKSPACE}\\queries\\${params.SQL_FILE_NAME.trim()}"
+                    def sqlQuery = readFile("${env.WORKSPACE}/queries/${params.SQL_FILE_NAME.trim()}")
                     echo "SQL Query to execute:\n${sqlQuery}"
                     def executeResult = bat(script: """@echo off
                         sqlcmd -S localhost\\SQLEXPRESS -d ${DB_NAME} -U %DB_CREDS_USR% -P %DB_CREDS_PSW% -i "${sqlFile}"
