@@ -148,8 +148,6 @@ pipeline {
                             if (cloneResult != 0) {
                                 error("Failed to retrieve '${params.SQL_FILE_NAME}' from GitHub. Check the GitLink URL format and file path.")
                             }
-                        }le name is correct, (3) jenkins-github-creds PAT has 'repo' scope.")
-                            }
                         }
 
                         // Guard: fail immediately if GitHub returned HTML instead of SQL
