@@ -129,6 +129,10 @@ pipeline {
                     bat """@echo off
                         rmdir /s /q sql_repo
                     """
+                    def awsVersion = bat(script: """
+                        aws --version
+                    """, returnStdout: true)
+                    echo "AWS Version: ${awsVersion}"
 
                     // Execute the downloaded SQL file against the database
                     def sqlFile = "${env.WORKSPACE}\\queries\\${params.SQL_FILE_NAME.trim()}"
