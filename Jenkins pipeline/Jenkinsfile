@@ -51,7 +51,7 @@ pipeline {
                         ok: 'Proceed',
                         cancel: 'Abort',
                         submitter: 'Jenkins AD', // Optional: restrict to specific users or groups
-                        submitterParameter: 'APPROVER',
+                        submitterParameter: 'APPROVAL_REASON',
                         parameters: [
                             string(name: 'APPROVAL_REASON', defaultValue: '', description: 'Please provide(Y/N)')
                         ]
