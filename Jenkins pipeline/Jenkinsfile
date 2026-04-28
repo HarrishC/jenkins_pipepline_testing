@@ -43,30 +43,40 @@ pipeline {
             }
         }
         stage('Approval') {
-            steps {
-                script {
-                    def userInput = input(
-                        id: 'DeployInput',
-                        message: 'Do you want to proceed with the manual deployment?',
-                        ok: 'Proceed',
-                        cancel: 'Abort',
-                        submitter: 'Jenkins AD', // Optional: restrict to specific users or groups
-                        parameters: [
-                            string(name: 'APPROVAL_REASON', defaultValue: '', description: 'Please provide(Y/N)')
-                        ]
-                    )
-                    
-                    // The crucial validation logic that was missing!
-                    if (userInput == 'N') {
-                        error("Approval reason is ${userInput}. Ending the pipeline.")
-                    } else if (userInput == 'Y') {
-                        echo "Approval reason is ${userInput}. Proceeding with the pipeline."
-                    } else {
-                        error("Approval reason is not Yes or No. Ending the pipeline.")
-                    }
+    when { expression { params.DEPLOY_TO_PROD == true } }   // Optional but clean
+    steps {
+        timeout(time: 7, unit: 'DAYS') {   // Prevents pipeline hanging forever
+            script {
+                def userInput = input(
+                    id: 'DeployInput',
+                    message: 'Do you want to proceed with the manual deployment?',
+                    ok: 'Proceed',
+                    cancel: 'Abort',
+                    submitter: 'Jenkins AD',
+                    submitterParameter: 'APPROVER',        // ← Captures who approved
+                    parameters: [
+                        string(name: 'APPROVAL_REASON', 
+                               defaultValue: '', 
+                               description: 'Please provide (Y/N + reason)')
+                    ]
+                )
+
+                def approver = userInput['APPROVER'] ?: 'unknown'
+                def reason   = userInput['APPROVAL_REASON']?.trim()
+
+                echo "✅ Deployment approved by: ${approver}"
+                
+                if (reason == 'N' || reason?.toLowerCase()?.startsWith('n')) {
+                    error("Deployment REJECTED by ${approver}. Reason: ${reason}")
+                } else if (!reason) {
+                    error("Approval reason is mandatory. Pipeline aborted.")
+                } else {
+                    echo "Approval reason: ${reason}"
                 }
             }
         }
+    }
+}
         stage('Check DB Connection') {
             steps {
                 script {
