@@ -43,9 +43,9 @@ pipeline {
             }
         }
         stage('Approval') {
-    when { expression { params.DEPLOY_TO_PROD == true } }   // Optional but clean
+    when { expression { params.DEPLOY_TO_PROD == true } }
     steps {
-        timeout(time: 7, unit: 'DAYS') {   // Prevents pipeline hanging forever
+        timeout(time: 7, unit: 'DAYS') {
             script {
                 def userInput = input(
                     id: 'DeployInput',
@@ -53,7 +53,7 @@ pipeline {
                     ok: 'Proceed',
                     cancel: 'Abort',
                     submitter: 'Jenkins AD',
-                    submitterParameter: 'APPROVER',        // ← Captures who approved
+                    submitterParameter: 'APPROVER',
                     parameters: [
                         string(name: 'APPROVAL_REASON', 
                                defaultValue: '', 
@@ -61,17 +61,28 @@ pipeline {
                     ]
                 )
 
-                def approver = userInput['APPROVER'] ?: 'unknown'
-                def reason   = userInput['APPROVAL_REASON']?.trim()
+                def approverId = userInput['APPROVER'] ?: 'unknown'
+                def approverName = approverId
 
-                echo "✅ Deployment approved by: ${approver}"
+                try {
+                    def jenkinsUser = hudson.model.User.getById(approverId, false)
+                    if (jenkinsUser) {
+                        approverName = jenkinsUser.getFullName() ?: jenkinsUser.getId()
+                    }
+                } catch (e) {
+                    echo "Warning: Could not resolve full name for user ${approverId}"
+                }
+
+                def reason = userInput['APPROVAL_REASON']?.trim()
+
+                echo "✅ Deployment approved by: ${approverName} (ID: ${approverId})"
                 
                 if (reason == 'N' || reason?.toLowerCase()?.startsWith('n')) {
-                    error("Deployment REJECTED by ${approver}. Reason: ${reason}")
+                    error("Deployment REJECTED by ${approverName}")
                 } else if (!reason) {
-                    error("Approval reason is mandatory. Pipeline aborted.")
+                    error("Approval reason is mandatory")
                 } else {
-                    echo "Approval reason: ${reason}"
+                    echo "Reason: ${reason}"
                 }
             }
         }
